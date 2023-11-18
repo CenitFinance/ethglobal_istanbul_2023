@@ -51,7 +51,7 @@ async function main() {
     )
 
     publicsArray.push(
-        [0, 0, 0, 9999]
+        [0, 0, 0, 5300]
     )
     beneficiarysArray.push(
         deployer.address
@@ -62,8 +62,8 @@ async function main() {
     await verifierContract.deployed();
 
     // deploy timelock
-    const tokenName = "Thenis token";
-    const tokenSymbol = 'THENIST';
+    const tokenName = "Themis token";
+    const tokenSymbol = 'THEMIS';
     const tokenInitialBalance = ethers.utils.parseEther('2000000000');
 
     const tokenFactory = await ethers.getContractFactory("ERC20PermitMock", deployer);
