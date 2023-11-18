@@ -28,4 +28,8 @@ The repository is structured as follows:
  * [ml_pipeline](ml_pipeline): Contains the code for the machine learning training pipeline, written in Python using PyTorch, as well as the ZKML compilation pipeline, written in Python using EZKL.
  * [notebooks](notebooks): Contains the Jupyter notebooks used for data analysis, feature engineering, and early tests for the ML pipeline.
 
+## How to run
 
+ * Python dependencies are managed with [Poetry](https://python-poetry.org/). Install it and run `poetry install` in the root directory to install the dependencies.
+ * The frontend is built with [Vue.js](https://vuejs.org/). Install it and run `npm install` in the `frontend` directory to install the dependencies. Run `npm run serve` in the `frontend` directory to run the frontend server. 
+ * The backend is built with [FastAPI](https://fastapi.tiangolo.com/). Install it and run `uvicorn main:app --reload` in the `backend` directory to run the backend server.
