@@ -2,7 +2,6 @@ import itertools
 from typing import List
 
 import matplotlib.pyplot as plt
-import numpy as np
 import torch
 from matplotlib.axes import Axes
 from sklearn.metrics import (
