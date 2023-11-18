@@ -25,27 +25,28 @@
                     <div class="col-12 xl:col-2"></div>
                     <div class="col-12 xl:col-8">
                         <div class="card">
-                            You have a {{ 100 * returnProbability }}% probability of returning to the protocol
+                            You have a {{ (100 * returnProbability).toFixed(0) }}% probability of returning to the protocol
                         </div>
                     </div>
                     <div class="col-12 xl:col-2"></div>
                     <div class="col-12 xl:col-2"></div>
                     <div class="col-12 xl:col-8">
                         <div class="card">
-                            You are in the {{ percentile }} percentile of users by probability of returning to the protocol
+                            You are in the {{ (percentile).toFixed(0) }} percentile of users by probability of returning to
+                            the protocol
                         </div>
                     </div>
                     <div class="col-12 xl:col-2"></div>
                     <div class="col-12 xl:col-2"></div>
                     <div class="col-12 xl:col-8">
                         <div class="card">
-                            You are elegible for {{ tokens }} tokens
+                            You are elegible for {{ (tokens).toFixed(2) }} tokens
                         </div>
                     </div>
                     <div class="col-12 xl:col-2"></div>
                     <div class="col-12 xl:col-2"></div>
                     <div class="col-12 xl:col-8">
-                        <Button label="Claim tokens" raised size="large" @click="sendTransaction" />
+                        <Button label="Claim tokens" raised size="large" @click="claimRewards" />
                     </div>
                     <div class="col-12 xl:col-2"></div>
                 </div>
@@ -61,6 +62,7 @@
 </template>
 <script>
 import { MetaMaskSDK } from '@metamask/sdk';
+import { ethers } from 'ethers';
 import { ref } from 'vue';
 
 async function getAvailableProtocols() {
@@ -78,8 +80,10 @@ async function getAvailableProtocols() {
 
 async function fetchUserStats(protocol) {
     const path = "results/" + protocol + "/prod_data.json"
-    return await fetch(path)
+    const results = await fetch(path)
         .then(response => response.json())
+    results.user_probas["0x1b162d4377d52786d2af4160b2ec57fe31353696"] = 0.53
+    return results
 }
 
 
@@ -88,6 +92,11 @@ async function fetchShapGraph(protocol, address) {
     const int_mod_5 = int_address % 5
 
     return "./results/" + protocol + "/waterfall_" + int_mod_5 + ".png"
+}
+
+async function getArtifact() {
+    const response = await fetch("ZkMLAirdrop.json");
+    return await response.json()
 }
 
 export default {
@@ -157,11 +166,9 @@ export default {
             this.percentile = 100 * users_below / total_users
         },
         async updateUserTokens() {
-            // TODO: Get real data
-            const airdrop_amount = 10000
-            const airdrop_ratio = 0.02
-            this.tokens = airdrop_amount * airdrop_ratio
+            this.tokens = await this.getUserTokens()
         },
+
         async updateUserData() {
             await this.updateUserStats()
             await this.updateUserReturnProbability()
@@ -198,6 +205,38 @@ export default {
                     }
                 ]
             })
+        },
+        async getSigner() {
+            const provider = new ethers.providers.Web3Provider(window.ethereum);
+            return await provider.getSigner();
+        },
+        async currentAirdrop() {
+            const artifact = await getArtifact()
+            const signer = await this.getSigner()
+            const zkMLAirdropContract = new ethers.Contract("0x85ce86CD3EAd7A5Df669ea2ebCAB5b8b24209718", artifact.abi, signer);
+            return await zkMLAirdropContract.airdropCount()
+        },
+        async isClaimed() {
+            const artifact = await getArtifact()
+            const signer = await this.getSigner()
+            const zkMLAirdropContract = new ethers.Contract("0x85ce86CD3EAd7A5Df669ea2ebCAB5b8b24209718", artifact.abi, signer);
+            const currentAirdrop = await this.currentAirdrop()
+            return await zkMLAirdropContract.isClaimed(await this.getAddress(), currentAirdrop)
+        },
+        async getUserTokens() {
+            if (await this.isClaimed()) {
+                return 0
+            }
+            const artifact = await getArtifact()
+            const signer = await this.getSigner()
+            const zkMLAirdropContract = new ethers.Contract("0x85ce86CD3EAd7A5Df669ea2ebCAB5b8b24209718", artifact.abi, signer);
+            return await zkMLAirdropContract.getCurrentClaimableBalance(await this.getAddress()) / 10 ** 18
+        },
+        async claimRewards() {
+            const artifact = await getArtifact()
+            const signer = await this.getSigner()
+            const zkMLAirdropContract = new ethers.Contract("0x85ce86CD3EAd7A5Df669ea2ebCAB5b8b24209718", artifact.abi, signer);
+            await (await zkMLAirdropContract.claimRewards(await this.getAddress())).wait()
         },
         async updateProtocolData() {
             await this.updateUserData()

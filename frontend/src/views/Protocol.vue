@@ -109,7 +109,7 @@
         <div class="grid p-fluid" style="margin-top: 1em;">
             <div class="col-12 xl:col-2"></div>
             <div class="col-12 xl:col-2">
-                <Button label="Commit airdrop" raised size="large" @click="sendTransaction" />
+                <Button label="Commit airdrop" raised size="large" @click="commitAirdrop" />
             </div>
             <div class="col-12 xl:col-4"></div>
             <div class="col-12 xl:col-2">
@@ -125,6 +125,7 @@ import BlockViewer from '@/components/BlockViewer.vue';
 import CohortInput from '@/components/CohortInput.vue';
 import { MetaMaskSDK } from '@metamask/sdk';
 import { ethers } from 'ethers';
+
 import { ref } from 'vue';
 
 async function fetchShapGraph(protocol) {
@@ -295,6 +296,13 @@ async function getAvailableProtocols() {
         "optimism",
         "zksync",
     ]
+}
+
+async function getArtifact() {
+    console.log("Getting artifact")
+    const response = await fetch("ZkMLAirdrop.json");
+    console.log(response)
+    return await response.json()
 }
 
 export default {
@@ -629,13 +637,15 @@ export default {
             this.metamask.connected = true
         },
         async getSigner() {
-            const provider = new ethers.BrowserProvider(window.ethereum);
+            const provider = new ethers.providers.Web3Provider(window.ethereum);
             return await provider.getSigner();
         },
         async commitAirdrop() {
             const allocationParameters = await this.getContractData()
-            const artifact = require("../artifacts/contracts/zkMLAirdrop.sol/zkMLAirdrop.json");
-            const zkMLAirdropContract = new ethers.Contract("0x42e719Fd97F0579aa833b2A9ae7864e1eD25F914", artifact.abi, signer);
+            const artifact = await getArtifact()
+            const signer = await this.getSigner()
+            // const artifact = fs("../artifacts/contracts/zkMLAirdrop.sol/zkMLAirdrop.json");
+            const zkMLAirdropContract = new ethers.Contract("0x85ce86CD3EAd7A5Df669ea2ebCAB5b8b24209718", artifact.abi, signer);
             await (await zkMLAirdropContract.submitAirdropParameters(allocationParameters)).wait()
         },
         async terminateMetamask() {
