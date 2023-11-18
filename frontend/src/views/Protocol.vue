@@ -124,38 +124,18 @@
 import BlockViewer from '@/components/BlockViewer.vue';
 import CohortInput from '@/components/CohortInput.vue';
 import { MetaMaskSDK } from '@metamask/sdk';
+import { ethers } from 'ethers';
 import { ref } from 'vue';
 
 async function fetchShapGraph(protocol) {
-    const url = "http://127.0.0.1:8000/graphs/shap/" + protocol
-
-    try {
-        const response = await fetch(url);
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        const data = await response.json();
-        return data; // Return the data
-    } catch (error) {
-        console.error('There was an error fetching the data:', error);
-        return null; // Return null or appropriate error handling
-    }
+    return "results/" + protocol + "/beeswarm.png"
 }
 
-async function fetchUserStats(protocol) {
-    const url = "http://127.0.0.1:8000/results/" + protocol
 
-    try {
-        const response = await fetch(url);
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        const data = await response.json();
-        return data; // Return the data
-    } catch (error) {
-        console.error('There was an error fetching the data:', error);
-        return null; // Return null or appropriate error handling
-    }
+async function fetchUserStats(protocol) {
+    const path = "results/" + protocol + "/prod_data.json"
+    return await fetch(path)
+        .then(response => response.json())
 }
 
 const documentStyle = getComputedStyle(document.documentElement);
@@ -303,19 +283,16 @@ async function getChurn(user_groups) {
 }
 
 async function getAvailableProtocols() {
-    const url = "http://127.0.0.1:8000/protocols"
-
-    try {
-        const response = await fetch(url);
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        const data = await response.json();
-        return data; // Return the data
-    } catch (error) {
-        console.error('There was an error fetching the data:', error);
-        return null; // Return null or appropriate error handling
-    }
+    return [
+        "arbitrum",
+        "base",
+        "celo",
+        "gnosis",
+        "layer_zero",
+        "optimism",
+        "polygon",
+        "zksync",
+    ]
 }
 
 export default {
@@ -529,10 +506,7 @@ export default {
             this.adjustCohortsAllocations(index + 1, remaining_allocation - new_current_cohort_allocation)
         },
         async updateShapGraph() {
-            const shapGraph = await fetchShapGraph(this.selectedProtocol.code)
-            const imageBase64 = shapGraph.image
-            const fullShapGraph = "data:image/png;base64, " + imageBase64
-            this.shapGraph = fullShapGraph
+            this.shapGraph = await fetchShapGraph(this.selectedProtocol.code)
         },
         async updateUserStats() {
             const userStats = await fetchUserStats(this.selectedProtocol.code)
@@ -562,10 +536,10 @@ export default {
                     return user_proba >= min_return_probability && user_proba < max_return_probability
                 }).length
 
+                const tokens_per_address = number_of_addresses !== 0 ? cohort_allocation / number_of_addresses : 0
                 return {
-                    min_return_probability: min_return_probability,
-                    max_return_probability: max_return_probability,
-                    allocation_per_address: number_of_addresses !== 0 ? cohort_allocation / number_of_addresses : 0,
+                    zkMLPoints: Math.floor(max_return_probability * 10000),
+                    allocation: ethers.utils.parseEther(tokens_per_address.toString()),
                 }
             })
             return allocations_by_cohort
@@ -651,6 +625,16 @@ export default {
             this.metamask.provider = await this.metamask.sdk.getProvider();
             await this.getAddress()
             this.metamask.connected = true
+        },
+        async getSigner() {
+            const provider = new ethers.BrowserProvider(window.ethereum);
+            return await provider.getSigner();
+        },
+        async commitAirdrop() {
+            const allocationParameters = await this.getContractData()
+            const artifact = require("../artifacts/contracts/zkMLAirdrop.sol/zkMLAirdrop.json");
+            const zkMLAirdropContract = new ethers.Contract("0xD09709511d48682909ab0D7e229e09a7D21850D7", artifact.abi, signer);
+            await (await zkMLAirdropContract.submitAirdropParameters(allocationParameters)).wait()
         },
         async terminateMetamask() {
             await this.metamask.sdk.terminate()

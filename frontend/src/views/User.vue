@@ -64,51 +64,30 @@ import { MetaMaskSDK } from '@metamask/sdk';
 import { ref } from 'vue';
 
 async function getAvailableProtocols() {
-    const url = "http://127.0.0.1:8000/protocols"
-
-    try {
-        const response = await fetch(url);
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        const data = await response.json();
-        return data; // Return the data
-    } catch (error) {
-        console.error('There was an error fetching the data:', error);
-        return null; // Return null or appropriate error handling
-    }
+    return [
+        "arbitrum",
+        "base",
+        "celo",
+        "gnosis",
+        "layer_zero",
+        "optimism",
+        "polygon",
+        "zksync",
+    ]
 }
 
 async function fetchUserStats(protocol) {
-    const url = "http://127.0.0.1:8000/results/" + protocol
-
-    try {
-        const response = await fetch(url);
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        const data = await response.json();
-        return data; // Return the data
-    } catch (error) {
-        console.error('There was an error fetching the data:', error);
-        return null; // Return null or appropriate error handling
-    }
+    const path = "results/" + protocol + "/prod_data.json"
+    return await fetch(path)
+        .then(response => response.json())
 }
 
-async function fetchShapGraph(protocol, address) {
-    const url = "http://127.0.0.1:8000/graphs/shap/" + protocol + "/" + address
 
-    try {
-        const response = await fetch(url);
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        const data = await response.json();
-        return data; // Return the data
-    } catch (error) {
-        console.error('There was an error fetching the data:', error);
-        return null; // Return null or appropriate error handling
-    }
+async function fetchShapGraph(protocol, address) {
+    const int_address = parseInt(address.substring(2), 16)
+    const int_mod_5 = int_address % 5
+
+    return "./results/" + protocol + "/waterfall_" + int_mod_5 + ".png"
 }
 
 export default {
@@ -120,6 +99,7 @@ export default {
                 sdk: null,
                 provider: null,
                 address: null,
+                mockedAddress: null,
             },
             returnProbability: null,
             percentile: null,
@@ -141,12 +121,6 @@ export default {
             const userStats = await fetchUserStats(this.selectedProtocol.code)
             this.userStats = userStats
         },
-        async getAddress() {
-            const accounts = await this.metamask.provider.request({
-                method: "eth_requestAccounts",
-            });
-            return accounts[0];
-        },
         async initAvailableProtocols() {
             const availableProtocols = await getAvailableProtocols()
             this.availableProtocols = availableProtocols.map(
@@ -167,6 +141,7 @@ export default {
         },
         async updateAddress() {
             this.metamask.address = await this.getAddress()
+            this.metamask.mockedAddress = this.metamask.address
         },
         async updateUserReturnProbability() {
             this.returnProbability = this.userStats.user_probas[this.metamask.address]
@@ -195,16 +170,13 @@ export default {
             await this.updateShapGraph()
         },
         async updateShapGraph() {
-            const shapGraph = await fetchShapGraph(this.selectedProtocol.code, this.metamask.address)
-            const imageBase64 = shapGraph.image
-            const fullShapGraph = "data:image/png;base64, " + imageBase64
-            this.shapGraph = fullShapGraph
+            this.shapGraph = await fetchShapGraph(this.selectedProtocol.code, this.metamask.address)
         },
         async connectMetamask() {
             this.metamask.provider = await this.metamask.sdk.getProvider();
-            await this.getAddress()
+            await this.updateAddress()
             this.metamask.connected = true
-
+            await this.updateUserData()
         },
         async terminateMetamask() {
             await this.metamask.sdk.terminate()
@@ -233,9 +205,9 @@ export default {
     },
     async mounted() {
         await this.initAvailableProtocols()
-        await this.updateUserData()
+        // await this.updateUserData()
         await this.metamask.sdk.init();
-        this.metamask.provider = await this.metamask.sdk.getProvider();
+        // this.metamask.provider = await this.metamask.sdk.getProvider();
     }
 }
 
