@@ -2,6 +2,12 @@
     <div>
         <div class="grid p-fluid">
             <div class="col-12 xl:col-12">
+                <Dropdown v-model="selectedProtocol" editable :options="availableProtocols" optionLabel="name"
+                    placeholder="Select a protocol" class="w-full md:w-14rem" @change="updateProtocolData" />
+            </div>
+        </div>
+        <div class="grid p-fluid">
+            <div class="col-12 xl:col-12">
                 <div class="card">
                     <h5>Users distribution</h5>
                     <Chart type="combo" :data="usersDistribution.data" :options="usersDistribution.options" height=100>
@@ -25,17 +31,13 @@
                 </div>
             </div>
         </div>
-        <div class="grid p-fluid" style="margin-top: 1em;">
-            <div class="col-12 xl:col-6">
-                <div class="flex-auto">
-                    <label for="campaign_funds" class="font-bold block mb-2"> Campaign funds </label>
-                    <InputNumber v-model="campaignFunds" inputId="campaign_funds" />
-                </div>
-            </div>
-        </div>
 
         <div class="grid p-fluid" style="margin-top: 1em;">
             <div class="col-12 xl:col-6">
+                <div class="flex-auto">
+                    <h3 for="campaign_funds" class="font-bold block mb-2"> Campaign funds (tokens) </h3>
+                    <InputNumber v-model="campaignFunds" inputId="campaign_funds" />
+                </div>
                 <div class="card">
                     <div class="grid p-fluid">
                         <div class="col-12 xl:col-4">
@@ -51,15 +53,52 @@
                     </div>
                     <Button icon="pi pi-plus" text rounded aria-label="Filter" @click="addCohort" />
                 </div>
+            </div>
+            <div class="col-12 xl:col-6">
+                <div class="grid p-fluid" style="margin-top: 1em;">
+                    <div class="col-12 xl:col-6 card">
+                        <h5>
+                            Value generated in the last window
+                        </h5>
+                        <h3>
+                            {{ totalValueGenerated }} $
+                        </h3>
+                    </div>
+                    <div class="col-12 xl:col-6 card">
+                        <h5>
+                            Total targetted addresses
+                        </h5>
+                        <h3>
+                            {{ targettedAddressesCount }}
+                        </h3>
+                    </div>
+                    <div class="col-12 xl:col-6 card">
+                        <h5>
+                            Tokens allocated per dollar generated in the last window
+                        </h5>
+                        <h3>
+                            {{ (campaignFunds / totalValueGenerated).toFixed(2) }} tokens/$ in last window
+                        </h3>
+                    </div>
+                    <div class="col-12 xl:col-6 card">
+                        <h5>
+                            Average tokens allocated per address
+                        </h5>
+                        <h3>
+                            {{ (campaignFunds / targettedAddressesCount).toFixed(2) }} tokens/address
+                        </h3>
+                    </div>
+                </div>
 
             </div>
         </div>
+
         <div class="grid p-fluid" style="margin-top: 1em;">
             <div class="col-12 xl:col-2"></div>
             <div class="col-12 xl:col-2">
-                <Button label="Commit airdrop" raised size="large" @click="getContractData" />
+                <Button label="Commit airdrop" raised size="large" @click="sendTransaction" />
             </div>
-            <div class="col-12 xl:col-2"></div>
+            <div class="col-12 xl:col-4"></div>
             <div class="col-12 xl:col-2">
                 <Button label="Download airdrop parameters" raised size="large" @click="downloadContractData" />
             </div>
@@ -71,10 +110,11 @@
 <script>
 import BlockViewer from '@/components/BlockViewer.vue';
 import CohortInput from '@/components/CohortInput.vue';
+import { MetaMaskSDK } from '@metamask/sdk';
 import { ref } from 'vue';
 
-async function fetchShapGraph() {
-    const url = "http://127.0.0.1:8000/graphs/shap/"
+async function fetchShapGraph(protocol) {
+    const url = "http://127.0.0.1:8000/graphs/shap/" + protocol
 
     try {
         const response = await fetch(url);
@@ -89,8 +129,8 @@ async function fetchShapGraph() {
     }
 }
 
-async function fetchUserStats() {
-    const url = "http://127.0.0.1:8000/results/stats"
+async function fetchUserStats(protocol) {
+    const url = "http://127.0.0.1:8000/results/" + protocol
 
     try {
         const response = await fetch(url);
@@ -123,10 +163,6 @@ async function getUsersDistribution(user_probas) {
         }).length
 
         return 100 * (users_in_group / total_users)
-        // return Object.entries(user_probas).filter((user_proba) => {
-        //     const proba = user_proba[1]
-        //     return proba >= lower_bound && proba < upper_bound
-        // })
     })
 
     return {
@@ -252,22 +288,71 @@ async function getChurn(user_groups) {
     }
 }
 
+async function getAvailableProtocols() {
+    const url = "http://127.0.0.1:8000/protocols"
 
+    try {
+        const response = await fetch(url);
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const data = await response.json();
+        return data; // Return the data
+    } catch (error) {
+        console.error('There was an error fetching the data:', error);
+        return null; // Return null or appropriate error handling
+    }
+}
 
 export default {
     data() {
         return {
+            availableProtocols: [],
+            selectedProtocol: null,
             usersDistribution: {},
             churn: {},
             valueGenerated: {},
             campaignFunds: ref(0),
-            cohorts: [],
+            cohorts: [
+                {
+                    return_probability: {
+                        values: ref([0, 100]),
+                        min: 0,
+                        max: 100,
+                        range: true,
+                    },
+                    allocation: {
+                        value: ref(100),
+                        min: 0,
+                        max: 100,
+                    }
+                }
+            ],
             shapGraph: null,
             userStats: {
                 probs: {},
                 groups: [],
+            },
+            totalValueGenerated: 0,
+            targettedAddressesCount: 0,
+            metamask: {
+                sdk: null,
+                provider: null
             }
         }
+    },
+    created() {
+        this.metamask.sdk = new MetaMaskSDK({
+            dappMetadata: {
+                url: window.location.href,
+                name: "Smart incentivization airdrops",
+            },
+            checkInstallationImmediately: false,
+            // enableDebug: true,
+            // logging: {
+            //     developerMode: true,
+            // },
+        })
     },
     methods: {
         addCohort() {
@@ -289,7 +374,6 @@ export default {
                     min: 0,
                     max: 100,
                     range: true,
-                    label: 'Return Probability',
                 },
                 allocation: {
                     value: ref(allocation),
@@ -297,10 +381,12 @@ export default {
                     max: 100,
                 }
             })
+            this.updateTargettedAddressesCount()
         },
         deleteCohort(index) {
             if (this.cohorts.length === 1) {
                 this.cohorts = []
+                this.updateTargettedAddressesCount()
                 return
             } else if (index === 0 && this.cohorts.length > 1) {
                 const next_cohort = this.cohorts[index + 1]
@@ -322,9 +408,9 @@ export default {
             const already_allocated = this.cohorts.filter((_, i) => i < index).reduce((acc, c) => acc + c.allocation.value, 0)
             const remaining_allocation = 100 - already_allocated
             this.adjustCohortsAllocations(index, remaining_allocation)
+            this.updateTargettedAddressesCount()
         },
         cohortRangeChanged(cohort, index) {
-            console.log("cohortRangeChanged", cohort, index)
             var new_min;
 
             if (index === 0) {
@@ -369,6 +455,8 @@ export default {
                     this.cohortRangeChanged(next_cohort, index + 1)
                 }
             }
+
+            this.updateTargettedAddressesCount()
         },
         cohortAllocationChanged(cohort, index) {
             const total_allocation_above = this.cohorts.filter((_, i) => i < index).reduce((acc, c) => acc + c.allocation.value, 0)
@@ -426,25 +514,25 @@ export default {
 
             this.adjustCohortsAllocations(index + 1, remaining_allocation - new_current_cohort_allocation)
         },
-        async initShapeGraph() {
-            const shapGraph = await fetchShapGraph()
+        async updateShapGraph() {
+            const shapGraph = await fetchShapGraph(this.selectedProtocol.code)
             const imageBase64 = shapGraph.image
             const fullShapGraph = "data:image/png;base64, " + imageBase64
             this.shapGraph = fullShapGraph
         },
-        async initUserStats() {
-            const userStats = await fetchUserStats()
+        async updateUserStats() {
+            const userStats = await fetchUserStats(this.selectedProtocol.code)
             this.userStats = userStats
         },
-        async initUsersDistribution() {
+        async updateUsersDistribution() {
             const usersDistribution = await getUsersDistribution(this.userStats.user_probas)
             this.usersDistribution = usersDistribution
         },
-        async initValueGenerated() {
+        async updateValueGenerated() {
             const valueGenerated = await getValueGenerated(this.userStats.user_groups)
             this.valueGenerated = valueGenerated
         },
-        async initChurn() {
+        async updateChurn() {
             const churn = await getChurn(this.userStats.user_groups)
             this.churn = churn
         },
@@ -471,26 +559,87 @@ export default {
         async downloadContractData() {
             const contractData = await this.getContractData()
             const jsonStr = JSON.stringify(contractData, null, 2);
-            console.log(jsonStr)
             const blob = new Blob([jsonStr], { type: "application/json" });
             const url = URL.createObjectURL(blob);
 
             const link = document.createElement('a');
             link.href = url;
-            link.download = "data.json";
+            link.download = "airdrop_parameters.json";
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
 
             URL.revokeObjectURL(url);
+        },
+        async getAddress() {
+            const accounts = await this.metamask.provider.request({
+                method: "eth_requestAccounts",
+            });
+            // this.address = accounts[0];
+            return accounts[0];
+        },
+        async sendTransaction() {
+            const contractAddress = "0xB2e3618B865b4f200B2d1803640d00557452aE1E";
+            const data = '0x03ca98cb0000000000000000000000000000000000000000000000000000000000000010';
+            if (!this.metamask.provider) {
+                this.metamask.provider = await this.metamask.sdk.getProvider();
+            }
+            this.metamask.provider.request({
+                method: "eth_sendTransaction",
+                params: [
+                    {
+                        from: await this.getAddress(),
+                        to: contractAddress,
+                        data: data,
+                    }
+                ]
+            })
+        },
+        updateTotalValueGenerated() {
+            const total_value_generated = this.userStats.user_groups.reduce((acc, group) => acc + group.value_generated, 0)
+            this.totalValueGenerated = total_value_generated
+        },
+        updateTargettedAddressesCount() {
+            const targettedAccounts = this.cohorts.map((cohort) => {
+                if (cohort.allocation.value === 0) {
+                    return 0
+                }
+                const min_return_probability = cohort.return_probability.values[0] / 100
+                const max_return_probability = cohort.return_probability.values[1] / 100
+                const number_of_addresses = Object.values(this.userStats.user_probas).filter((user_proba) => {
+                    return user_proba >= min_return_probability && user_proba < max_return_probability
+                }).length
+                return number_of_addresses
+            })
+            this.targettedAddressesCount = targettedAccounts.reduce((acc, c) => acc + c, 0)
+        },
+        async initAvailableProtocols() {
+            const availableProtocols = await getAvailableProtocols()
+            this.availableProtocols = availableProtocols.map(
+                (protocol) => {
+                    return {
+                        name: protocol,
+                        code: protocol,
+                    }
+                }
+            )
+            this.selectedProtocol = ref(this.availableProtocols[0])
+        },
+        async updateProtocolData() {
+            await this.updateShapGraph()
+            await this.updateUserStats()
+            await this.updateUsersDistribution()
+            await this.updateValueGenerated()
+            await this.updateChurn()
+            await this.updateTotalValueGenerated()
+            this.updateTargettedAddressesCount()
         }
     },
     async mounted() {
-        await this.initShapeGraph()
-        await this.initUserStats()
-        await this.initUsersDistribution()
-        await this.initValueGenerated()
-        await this.initChurn()
+        await this.initAvailableProtocols()
+        await this.updateProtocolData()
+        await this.metamask.sdk.init();
+        this.provider = await this.metamask.sdk.getProvider();
     }
 }
 </script>

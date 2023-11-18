@@ -1,9 +1,6 @@
 import json
 from fastapi import APIRouter
 from pydantic import BaseModel
-import numpy as np
-import random
-import string
 
 router = APIRouter(
     prefix="/results",
@@ -32,12 +29,14 @@ class Stats(BaseModel):
     user_probas: dict[str, float]
 
 
-@router.get("/stats/")
-def get_stats() -> Stats:
-    with open("mocks/user_probas.json") as results_file:
+@router.get("/{protocol}")
+def get_stats(protocol: str) -> Stats:
+    path = f"results/{protocol}/prod_data.json"
+    with open(path) as results_file:
         results = json.load(results_file)
-    return Stats(
-        **results
-        # user_groups=[],
-        # user_probas={address: probs for address, probs in zip(addresses, probs)},
-    )
+    results["user_probas"] = {
+        address: proba
+        for address, proba in results["user_probas"].items()
+        if proba == proba
+    }
+    return Stats(**results)

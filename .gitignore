@@ -41,3 +41,4 @@ public/themes/nano/
 
 *.csv
 *.pyc
+*/__pycache__/*
