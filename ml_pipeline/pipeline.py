@@ -1,5 +1,6 @@
 # Imports
 import argparse
+import asyncio
 from pathlib import Path
 
 import matplotlib.pyplot as plt
@@ -19,6 +20,7 @@ from ml_pipeline.shap_plots import (
     display_waterfall,
 )
 from ml_pipeline.training import train_cross_validation
+from ml_pipeline.zkml import generate_compiled_model
 
 
 def get_arguments() -> tuple:
@@ -310,4 +312,13 @@ generate_prod_data(
     user_col="User Address",
     prediction_col="prediction",
     value_col="Transactions",
+)
+
+
+asyncio.run(
+    generate_compiled_model(
+        base_path=zkml_folder,
+        model=final_model,
+        test_X=test_X,
+    )
 )

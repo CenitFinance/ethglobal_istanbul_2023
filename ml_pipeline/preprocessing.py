@@ -40,6 +40,7 @@ def preprocess_data(
     feature_cols: list[str] = None,  # If None, all columns except label_col are used
     do_feature_scaling: bool = True,  # If True, features are scaled to mean 0 and std 1 with sklearn StandardScaler trained on all but test set
     seed: int = 1534,
+    is_classification: bool = True,
 ) -> tuple[
     torch.Tensor,
     torch.Tensor,
@@ -90,6 +91,8 @@ def preprocess_data(
         f"Final test elements: {sum(groups_values[g] for g in test_groups)} across {len(test_groups)} groups"
     )
 
+    print(f"Label is {label_col}")
+
     # Train test split
     train_data = data[data[grouping_col].isin(train_groups)]
     train_groups = train_data[grouping_col].values
@@ -137,9 +140,13 @@ def preprocess_data(
 
     # Convert to torch tensors
     train_X = torch.tensor(train_X, dtype=torch.float32)
-    train_y = torch.tensor(train_y, dtype=torch.long).unsqueeze(1)
     test_X = torch.tensor(test_X, dtype=torch.float32)
-    test_y = torch.tensor(test_y, dtype=torch.long).unsqueeze(1)
+    if is_classification:
+        train_y = torch.tensor(train_y, dtype=torch.long).unsqueeze(1)
+        test_y = torch.tensor(test_y, dtype=torch.long).unsqueeze(1)
+    else:
+        train_y = torch.tensor(train_y, dtype=torch.float32).unsqueeze(1)
+        test_y = torch.tensor(test_y, dtype=torch.float32).unsqueeze(1)
 
     assert train_X.shape[0] == train_y.shape[0]
     assert test_X.shape[0] == test_y.shape[0]

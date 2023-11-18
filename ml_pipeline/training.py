@@ -104,8 +104,9 @@ def train_cross_validation(
         print(f"Fold {fold_idx} done, metrics:")
         print(f"  Train loss: {train_loss:.4f}")
         print(f"  Validation loss: {valid_loss:.4f}")
-        print(f"  Train accuracy: {train_accuracy:.4f}")
-        print(f"  Validation accuracy: {valid_accuracy:.4f}")
+        if is_classification:
+            print(f"  Train accuracy: {train_accuracy:.4f}")
+            print(f"  Validation accuracy: {valid_accuracy:.4f}")
 
     return (
         models,
