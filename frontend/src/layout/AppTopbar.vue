@@ -63,7 +63,8 @@ const isOutsideClicked = (event) => {
 <template>
     <div class="layout-topbar">
         <router-link to="/" class="layout-topbar-logo">
-            <span>Airdrops</span>
+            <img src="src/assets/logo.jpg" alt="logo" />
+            <span>Smart incentives dashboard</span>
         </router-link>
 
         <button class="p-link layout-menu-button layout-topbar-button" @click="onMenuToggle()">

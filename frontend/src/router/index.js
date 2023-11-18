@@ -14,6 +14,17 @@ const router = createRouter({
                     component: () => import('@/views/Protocol.vue')
                 },
             ]
+        },
+        {
+            path: '/user',
+            component: AppLayout,
+            children: [
+                {
+                    path: '/user',
+                    name: 'user',
+                    component: () => import('@/views/User.vue')
+                },
+            ]
         }
     ]
 })

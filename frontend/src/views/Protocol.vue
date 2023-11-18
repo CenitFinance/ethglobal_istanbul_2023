@@ -1,16 +1,26 @@
 <template>
     <div>
         <div class="grid p-fluid">
-            <div class="col-12 xl:col-12">
+            <div class="col-12 xl:col-2">
+                <h4 for="protocol_selector" class="block mb-2"> Select a protocol </h4>
                 <Dropdown v-model="selectedProtocol" editable :options="availableProtocols" optionLabel="name"
-                    placeholder="Select a protocol" class="w-full md:w-14rem" @change="updateProtocolData" />
+                    placeholder="Select a protocol" class="w-full md:w-14rem" @change="updateProtocolData"
+                    inputId="protocol_selector" />
+            </div>
+            <div class="col-12 xl:col-8"></div>
+            <div v-if="!metamask.connected" class="col-12 xl:col-2" style="align: right;">
+                <Button label="Connect Metamask" raised size="large" @click="connectMetamask" />
+            </div>
+            <div v-else class="col-12 xl:col-2" style="align: right;">
+                <Button label="Disconnect Metamask" raised size="large" @click="terminateMetamask" />
             </div>
         </div>
+        <h3>User analytics</h3>
         <div class="grid p-fluid">
             <div class="col-12 xl:col-12">
                 <div class="card">
                     <h5>Users distribution</h5>
-                    <Chart type="combo" :data="usersDistribution.data" :options="usersDistribution.options" height=100>
+                    <Chart type="combo" :data="usersDistribution.data" :options="usersDistribution.options" height=50>
                     </Chart>
                 </div>
             </div>
@@ -32,10 +42,12 @@
             </div>
         </div>
 
+        <h3>Airdrop parameters</h3>
+
         <div class="grid p-fluid" style="margin-top: 1em;">
             <div class="col-12 xl:col-6">
                 <div class="flex-auto">
-                    <h3 for="campaign_funds" class="font-bold block mb-2"> Campaign funds (tokens) </h3>
+                    <h4 for="campaign_funds" class="block mb-2"> Campaign funds (tokens) </h4>
                     <InputNumber v-model="campaignFunds" inputId="campaign_funds" />
                 </div>
                 <div class="card">
@@ -61,7 +73,7 @@
                             Value generated in the last window
                         </h5>
                         <h3>
-                            {{ totalValueGenerated }} $
+                            {{ totalValueGenerated }} interactions
                         </h3>
                     </div>
                     <div class="col-12 xl:col-6 card">
@@ -77,7 +89,7 @@
                             Tokens allocated per dollar generated in the last window
                         </h5>
                         <h3>
-                            {{ (campaignFunds / totalValueGenerated).toFixed(2) }} tokens/$ in last window
+                            {{ (campaignFunds / totalValueGenerated).toFixed(2) }} tokens/interaction in last window
                         </h3>
                     </div>
                     <div class="col-12 xl:col-6 card">
@@ -203,7 +215,8 @@ async function getUsersDistribution(user_probas) {
                         text: "Return probability (%)"
                     }
                 },
-            }
+            },
+
         },
     }
 }
@@ -337,7 +350,8 @@ export default {
             targettedAddressesCount: 0,
             metamask: {
                 sdk: null,
-                provider: null
+                provider: null,
+                connected: false,
             }
         }
     },
@@ -345,13 +359,10 @@ export default {
         this.metamask.sdk = new MetaMaskSDK({
             dappMetadata: {
                 url: window.location.href,
-                name: "Smart incentivization airdrops",
+                name: "Smart incentives dashboard",
             },
             checkInstallationImmediately: false,
-            // enableDebug: true,
-            // logging: {
-            //     developerMode: true,
-            // },
+            checkInstallationOnAllCalls: true,
         })
     },
     methods: {
@@ -483,6 +494,8 @@ export default {
                 const new_allocation = Math.round(new_allocation_ratio * remaining_allocation)
                 cohort.allocation.value = new_allocation
             }
+
+            this.updateTargettedAddressesCount()
         },
         adjustCohortsAllocations(index, remaining_allocation) {
             const current_cohort = this.cohorts[index]
@@ -575,7 +588,6 @@ export default {
             const accounts = await this.metamask.provider.request({
                 method: "eth_requestAccounts",
             });
-            // this.address = accounts[0];
             return accounts[0];
         },
         async sendTransaction() {
@@ -633,13 +645,22 @@ export default {
             await this.updateChurn()
             await this.updateTotalValueGenerated()
             this.updateTargettedAddressesCount()
-        }
+        },
+        async connectMetamask() {
+            this.metamask.provider = await this.metamask.sdk.getProvider();
+            await this.getAddress()
+            this.metamask.connected = true
+        },
+        async terminateMetamask() {
+            await this.metamask.sdk.terminate()
+            this.metamask.connected = false
+        },
     },
     async mounted() {
         await this.initAvailableProtocols()
         await this.updateProtocolData()
         await this.metamask.sdk.init();
-        this.provider = await this.metamask.sdk.getProvider();
+        // this.metamask.provider = await this.metamask.sdk.getProvider();
     }
 }
 </script>
