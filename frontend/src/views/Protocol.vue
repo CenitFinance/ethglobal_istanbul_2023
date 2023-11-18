@@ -97,7 +97,8 @@
                             Average tokens allocated per address
                         </h5>
                         <h3>
-                            {{ (campaignFunds / targettedAddressesCount).toFixed(2) }} tokens/address
+                            {{ targettedAddressesCount !== 0 ? (campaignFunds / targettedAddressesCount).toFixed(2) : 0 }}
+                            tokens/address
                         </h3>
                     </div>
                 </div>
