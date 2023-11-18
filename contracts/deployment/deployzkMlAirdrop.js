@@ -112,6 +112,7 @@ async function main() {
     const outputJson = {
         zkMLAirdropContract: zkMLAirdropContract.address,
         tokenContract: tokenContract.address,
+        verifierContract: verifierContract.address,
         deployer: deployer.address
     };
     fs.writeFileSync(pathOutputJson, JSON.stringify(outputJson, null, 1));

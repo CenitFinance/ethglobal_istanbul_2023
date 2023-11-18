@@ -12,7 +12,7 @@ async function main() {
 
     const tokenName = "Thenis token";
     const tokenSymbol = 'THENIST';
-    const tokenInitialBalance = ethers.utils.parseEther('20000000');
+    const tokenInitialBalance = ethers.utils.parseEther('2000000000');
 
     try {
         await hre.run('verify:verify', { address: deployOutput.tokenContract, constructorArguments: [
@@ -23,16 +23,19 @@ async function main() {
             ]
          });
     } catch (error) {
+        console.log(error)
         expect(error.message.toLowerCase().includes('already verified')).to.be.equal(true);
     }
     try {
         await hre.run('verify:verify', { 
             address: deployOutput.zkMLAirdropContract,  
             constructorArguments: [
-                deployOutput.tokenContract
+                deployOutput.tokenContract,
+                deployOutput.verifierContract
             ], 
         });
     } catch (error) {
+        console.log(error)
         expect(error.message.toLowerCase().includes('already verified')).to.be.equal(true);
     }
 }
