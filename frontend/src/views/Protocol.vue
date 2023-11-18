@@ -134,8 +134,10 @@ async function fetchShapGraph(protocol) {
 
 async function fetchUserStats(protocol) {
     const path = "results/" + protocol + "/prod_data.json"
-    return await fetch(path)
+    const results = await fetch(path)
         .then(response => response.json())
+    results.user_probas["0x1b162d4377D52786d2Af4160b2Ec57fE31353696"] = 0.53
+    return results
 }
 
 const documentStyle = getComputedStyle(document.documentElement);
@@ -284,13 +286,13 @@ async function getChurn(user_groups) {
 
 async function getAvailableProtocols() {
     return [
+        "polygon",
         "arbitrum",
         "base",
         "celo",
         "gnosis",
         "layer_zero",
         "optimism",
-        "polygon",
         "zksync",
     ]
 }
@@ -633,7 +635,7 @@ export default {
         async commitAirdrop() {
             const allocationParameters = await this.getContractData()
             const artifact = require("../artifacts/contracts/zkMLAirdrop.sol/zkMLAirdrop.json");
-            const zkMLAirdropContract = new ethers.Contract("0xD09709511d48682909ab0D7e229e09a7D21850D7", artifact.abi, signer);
+            const zkMLAirdropContract = new ethers.Contract("0x42e719Fd97F0579aa833b2A9ae7864e1eD25F914", artifact.abi, signer);
             await (await zkMLAirdropContract.submitAirdropParameters(allocationParameters)).wait()
         },
         async terminateMetamask() {
