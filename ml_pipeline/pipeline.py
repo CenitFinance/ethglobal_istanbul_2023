@@ -91,6 +91,8 @@ zkml_folder = outputs_folder / "zkml/"
 zkml_folder.mkdir(parents=True, exist_ok=True)
 
 df = pd.read_csv(data_file)
+df["old_target"] = df["target"]
+df["target"] = df["target_reg"] < -0.99
 
 feature_renames = {
     "Active Days": "Days with activity",
@@ -113,7 +115,7 @@ feature_renames = {
     "Transactions Count": "Transactions",
     "Transactions Count - past 3 windows": "Transactions in 3 windows",
     "Transactions Count - past 6 windows": "Transactions in 6 windows",
-    "Trend_Objetive_next_month": "Transactions trend",
+    # "Trend_Objetive_next_month": "Transactions trend",
     "Trend Transactions - past 3 windows": "Transactions trend in 3 windows",
     "Trend Transactions - past 6 windows": "Transactions trend in 6 windows",
     "Transaction Points Dollars": "Transaction value tiers",
