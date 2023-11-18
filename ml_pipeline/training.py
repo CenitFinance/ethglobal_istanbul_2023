@@ -14,6 +14,7 @@ def train_cross_validation(
     epochs: int = 30,
     learning_rate: float = 0.03,
     shuffle_batches=True,
+    is_classification=True,
 ):
     models = []
     train_loss_lists = []
@@ -25,7 +26,10 @@ def train_cross_validation(
     for fold_idx, (train_idx, validation_idx) in enumerate(group_kfold_splits):
         fold_model = model_class()
         optimizer = torch.optim.Adam(fold_model.parameters(), lr=learning_rate)
-        criterion = nn.BCEWithLogitsLoss()
+        if is_classification:
+            criterion = nn.BCEWithLogitsLoss()
+        else:
+            criterion = nn.MSELoss()
 
         print(f"\nFold {fold_idx}")
         # prepare data
@@ -65,9 +69,12 @@ def train_cross_validation(
                 train_loss = criterion(train_pred, train_y_fold).item()
                 train_loss_list.append(train_loss)
 
-                train_pred = torch.sigmoid(train_pred) > 0.5
-                train_accuracy = accuracy_score(train_y_fold, train_pred.cpu().numpy())
-                train_accuracy_list.append(train_accuracy)
+                if is_classification:
+                    train_pred = torch.sigmoid(train_pred) > 0.5
+                    train_accuracy = accuracy_score(
+                        train_y_fold, train_pred.cpu().numpy()
+                    )
+                    train_accuracy_list.append(train_accuracy)
 
                 # calculate validation logs
                 valid_pred = fold_model(validation_x_fold)
@@ -76,11 +83,12 @@ def train_cross_validation(
                 valid_loss = criterion(valid_pred, validation_y_fold).item()
                 valid_loss_list.append(valid_loss)
 
-                valid_pred = torch.sigmoid(valid_pred) > 0.5
-                valid_accuracy = accuracy_score(
-                    validation_y_fold, valid_pred.cpu().numpy()
-                )
-                valid_accuracy_list.append(valid_accuracy)
+                if is_classification:
+                    valid_pred = torch.sigmoid(valid_pred) > 0.5
+                    valid_accuracy = accuracy_score(
+                        validation_y_fold, valid_pred.cpu().numpy()
+                    )
+                    valid_accuracy_list.append(valid_accuracy)
 
             if epoch % 10 == 0:
                 print(

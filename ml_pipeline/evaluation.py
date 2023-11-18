@@ -7,11 +7,14 @@ from matplotlib.axes import Axes
 from sklearn.metrics import (
     classification_report,
     confusion_matrix,
+    mean_absolute_error,
+    mean_squared_error,
     precision_recall_curve,
+    r2_score,
 )
 
 
-def evaluate_models(
+def evaluate_models_bc(
     models: List[torch.nn.Module], test_X: torch.Tensor, test_y: torch.Tensor
 ) -> None:
     plt.figure(figsize=(6, 6))
@@ -79,3 +82,38 @@ def evaluate_models(
         classification_report_model = classification_report(test_y, predictions)
         print(f"Classification Report for Model {i+1}:")
         print(classification_report_model)
+
+
+def evaluate_models_regression(
+    models: List[torch.nn.Module], test_X: torch.Tensor, test_y: torch.Tensor
+) -> None:
+    num_models = len(models)
+    fig, axs = plt.subplots(1, num_models, figsize=(6 * num_models, 6))
+
+    # Adjust for a single model
+    if num_models == 1:
+        axs = [axs]
+
+    for i, model in enumerate(models):
+        model.eval()  # Set the model to evaluation mode
+        with torch.no_grad():
+            predictions = model(test_X).squeeze()
+
+        # Calculate metrics
+        mse = mean_squared_error(test_y, predictions)
+        mae = mean_absolute_error(test_y, predictions)
+        r2 = r2_score(test_y, predictions)
+
+        # Plotting Actual vs Predicted values
+        ax: Axes = axs[i]
+        ax.scatter(test_y, predictions, alpha=0.3)
+        ax.plot([test_y.min(), test_y.max()], [test_y.min(), test_y.max()], "k--", lw=2)
+        ax.set_title(f"Model {i+1} - MSE: {mse:.2f}, MAE: {mae:.2f}, R²: {r2:.2f}")
+        ax.set_xlabel("Actual")
+        ax.set_ylabel("Predicted")
+
+        # Print metrics
+        print(f"Model {i+1} - MSE: {mse:.2f}, MAE: {mae:.2f}, R²: {r2:.2f}")
+
+    plt.tight_layout()
+    plt.show()
