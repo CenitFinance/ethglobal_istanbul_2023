@@ -1,4 +1,5 @@
 import itertools
+from pathlib import Path
 from typing import List
 
 import matplotlib.pyplot as plt
@@ -15,7 +16,10 @@ from sklearn.metrics import (
 
 
 def evaluate_models_bc(
-    models: List[torch.nn.Module], test_X: torch.Tensor, test_y: torch.Tensor
+    models: List[torch.nn.Module],
+    test_X: torch.Tensor,
+    test_y: torch.Tensor,
+    save_to: str = None,
 ) -> None:
     plt.figure(figsize=(6, 6))
 
@@ -35,7 +39,11 @@ def evaluate_models_bc(
     plt.xlim(0, 1)
     plt.ylim(0, 1)
     plt.legend()
-    plt.show()
+
+    if save_to is not None:
+        plt.savefig(Path(save_to) / "precision_recall_curve.png")
+    else:
+        plt.show()
 
     # Confusion matrices
     num_models = len(models)
@@ -71,7 +79,11 @@ def evaluate_models_bc(
             )
 
     plt.tight_layout()
-    plt.show()
+
+    if save_to is not None:
+        plt.savefig(Path(save_to) / "confusion_matrices.png")
+    else:
+        plt.show()
 
     # Print classification reports
     for i, model in enumerate(models):
@@ -85,7 +97,10 @@ def evaluate_models_bc(
 
 
 def evaluate_models_regression(
-    models: List[torch.nn.Module], test_X: torch.Tensor, test_y: torch.Tensor
+    models: List[torch.nn.Module],
+    test_X: torch.Tensor,
+    test_y: torch.Tensor,
+    save_to: str = None,
 ) -> None:
     num_models = len(models)
     fig, axs = plt.subplots(1, num_models, figsize=(6 * num_models, 6))
@@ -116,4 +131,7 @@ def evaluate_models_regression(
         print(f"Model {i+1} - MSE: {mse:.2f}, MAE: {mae:.2f}, R²: {r2:.2f}")
 
     plt.tight_layout()
-    plt.show()
+    if save_to is not None:
+        plt.savefig(Path(save_to) / "actual_vs_predicted.png")
+    else:
+        plt.show()

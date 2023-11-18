@@ -1,3 +1,4 @@
+from pathlib import Path
 from typing import List, Union
 
 import matplotlib.pyplot as plt
@@ -25,6 +26,7 @@ def display_beeswarm(
     data_X: torch.Tensor,
     feature_names: Union[List[str], None] = None,
     shap_values: Union[np.ndarray, None] = None,
+    save_to: Union[str, None] = None,
 ):
     if shap_values is None:
         shap_values = calculate_shap_values(model, data_X)
@@ -33,12 +35,18 @@ def display_beeswarm(
         feature_names = [f"Feature_{i}" for i in range(data_X.shape[1])]
 
     # Plotting the beeswarm plot
+    plt.clf()
     shap.summary_plot(
         shap_values,
         features=data_X,
         feature_names=feature_names,
+        show=False,
     )
-    plt.show()
+    if save_to is not None:
+        plt.savefig(save_to, bbox_inches="tight")
+    else:
+        plt.show()
+    plt.close()
 
 
 def display_waterfall(
@@ -48,6 +56,7 @@ def display_waterfall(
     idx: int,
     feature_names: Union[List[str], None] = None,
     max_display: int = 10,
+    save_to: Union[str, None] = None,
 ):
     # Calculate the expected value (mean model output on train data)
     with torch.no_grad():
@@ -67,9 +76,15 @@ def display_waterfall(
     )
 
     # Create the waterfall plot
+    plt.clf()
     shap.waterfall_plot(
         shap_explanation,
         max_display=max_display,
         show=False,
     )
-    plt.show()
+    if save_to is not None:
+        plt.savefig(save_to, bbox_inches="tight")
+    else:
+        plt.show()
+
+    plt.close()

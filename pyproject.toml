@@ -4,6 +4,8 @@ version = "0.1.0"
 description = "ETHGlobal Istanbul 2023"
 authors = ["Miguel Blanco Marcos <miguel.blanco.marcos@gmail.com>"]
 readme = "README.md"
+packages = [{include = "ml_pipeline"}]
+
 
 [tool.poetry.dependencies]
 python = "<3.13,>=3.9"
