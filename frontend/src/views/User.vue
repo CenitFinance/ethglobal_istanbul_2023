@@ -25,22 +25,27 @@
                     <div class="col-12 xl:col-2"></div>
                     <div class="col-12 xl:col-8">
                         <div class="card">
-                            You have a {{ (100 * returnProbability).toFixed(0) }}% probability of returning to the protocol
+                            <b>The model predicted</b> that you were going to return to the protocol with <b>a probability
+                                of
+                                {{ (100 * returnProbability).toFixed(0) }}%</b>
+                        </div>
+                    </div>
+                    <div class="col-12 xl:col-2"></div>
+                    <div class="col-12 xl:col-2"></div>
+                    <div class="col-12 xl:col-8">
+                        <div v-if="percentile >= 50" class="card">
+                            You are amongst the <b>{{ (100 - percentile).toFixed(0) }}% most loyal users</b> of the protocol
+                        </div>
+                        <div v-else class="card">
+                            You are in the <b>{{ (percentile).toFixed(0) }}th percentile</b> of users by probability of
+                            returning to the protocol
                         </div>
                     </div>
                     <div class="col-12 xl:col-2"></div>
                     <div class="col-12 xl:col-2"></div>
                     <div class="col-12 xl:col-8">
                         <div class="card">
-                            You are in the {{ (percentile).toFixed(0) }} percentile of users by probability of returning to
-                            the protocol
-                        </div>
-                    </div>
-                    <div class="col-12 xl:col-2"></div>
-                    <div class="col-12 xl:col-2"></div>
-                    <div class="col-12 xl:col-8">
-                        <div class="card">
-                            You are elegible for {{ (tokens).toFixed(2) }} tokens
+                            You are elegible for <b>{{ (tokens).toFixed(2) }} tokens</b>
                         </div>
                     </div>
                     <div class="col-12 xl:col-2"></div>

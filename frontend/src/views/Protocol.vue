@@ -32,12 +32,12 @@
             </div>
             <div class="col-12 xl:col-6">
                 <div class="card">
-                    <h5>Churn</h5>
-                    <Chart type="line" :data="churn.data" :options="churn.options" height=125></Chart>
+                    <h5>Churn probability</h5>
+                    <Chart type="line" :data="churn.data" :options="churn.options" height=150></Chart>
                 </div>
                 <div class="card">
-                    <h5>Value generated</h5>
-                    <Chart type="combo" :data="valueGenerated.data" :options="valueGenerated.options" height=125></Chart>
+                    <h5>Recorded interactions</h5>
+                    <Chart type="combo" :data="valueGenerated.data" :options="valueGenerated.options" height=150></Chart>
                 </div>
             </div>
         </div>
@@ -78,7 +78,7 @@
                     </div>
                     <div class="col-12 xl:col-6 card">
                         <h5>
-                            Total targetted addresses
+                            Total targeted addresses
                         </h5>
                         <h3>
                             {{ targettedAddressesCount }}
@@ -86,10 +86,10 @@
                     </div>
                     <div class="col-12 xl:col-6 card">
                         <h5>
-                            Tokens allocated per dollar generated in the last window
+                            Tokens allocated per interaction in the last window
                         </h5>
                         <h3>
-                            {{ (campaignFunds / totalValueGenerated).toFixed(2) }} tokens/interaction in last window
+                            {{ (campaignFunds / totalValueGenerated).toFixed(2) }} tokens/interaction
                         </h3>
                     </div>
                     <div class="col-12 xl:col-6 card">
@@ -242,7 +242,7 @@ async function getValueGenerated(user_groups) {
                     // From here: https://www.chartjs.org/docs/latest/axes/labelling.html
                     title: {
                         display: true,
-                        text: "value generated last period ($)"
+                        text: "Interactions in the last period"
                     }
                 },
             }
@@ -259,14 +259,14 @@ async function getChurn(user_groups) {
                 {
                     type: 'line',
                     label: 'Median',
-                    data: user_groups.map((group) => group.median),
+                    data: user_groups.map((group) => 100 * group.median),
                     backgroundColor: 'blue',
                     borderColor: 'blue',
                 },
                 {
                     type: 'line',
                     label: '75th Percentile',
-                    data: user_groups.map((group) => group.pct75),
+                    data: user_groups.map((group) => 100 * group.pct75),
                     backgroundColor: 'transparent',
                     borderColor: 'red',
                     borderWidth: 2,
@@ -275,14 +275,38 @@ async function getChurn(user_groups) {
                 {
                     type: 'line',
                     label: '25th Percentile',
-                    data: user_groups.map((group) => group.pct25),
+                    data: user_groups.map((group) => 100 * group.pct25),
                     backgroundColor: 'transparent',
                     borderColor: 'green',
                     borderWidth: 2,
                     borderDash: [5, 5],
                 },
-            ]
-        }
+            ],
+        },
+        options: {
+            plugins: {
+                legend: {
+                    display: false,
+                }
+            },
+            scales: {
+                y: {
+                    // From here: https://www.chartjs.org/docs/latest/axes/labelling.html
+                    title: {
+                        display: true,
+                        text: "Probability of churn (%)"
+                    }
+                },
+                x: {
+                    // From here: https://www.chartjs.org/docs/latest/axes/labelling.html
+                    title: {
+                        display: true,
+                        text: "Interactions in the last period"
+                    }
+                },
+            },
+
+        },
     }
 }
 
