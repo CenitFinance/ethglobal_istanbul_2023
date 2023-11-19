@@ -123,6 +123,7 @@
 <script>
 import BlockViewer from '@/components/BlockViewer.vue';
 import CohortInput from '@/components/CohortInput.vue';
+import { network_to_contract, network_to_id, protocol_to_network } from '@/contracts.js';
 import { MetaMaskSDK } from '@metamask/sdk';
 import { ethers } from 'ethers';
 
@@ -575,23 +576,6 @@ export default {
             });
             return accounts[0];
         },
-        async sendTransaction() {
-            const contractAddress = "0xB2e3618B865b4f200B2d1803640d00557452aE1E";
-            const data = '0x03ca98cb0000000000000000000000000000000000000000000000000000000000000010';
-            if (!this.metamask.provider) {
-                this.metamask.provider = await this.metamask.sdk.getProvider();
-            }
-            this.metamask.provider.request({
-                method: "eth_sendTransaction",
-                params: [
-                    {
-                        from: await this.getAddress(),
-                        to: contractAddress,
-                        data: data,
-                    }
-                ]
-            })
-        },
         updateTotalValueGenerated() {
             const total_value_generated = this.userStats.user_groups.reduce((acc, group) => acc + group.value_generated, 0)
             this.totalValueGenerated = total_value_generated
@@ -630,34 +614,57 @@ export default {
             await this.updateChurn()
             await this.updateTotalValueGenerated()
             this.updateTargettedAddressesCount()
+            if (this.metamask.connected) {
+                await this.syncNetwork()
+            }
         },
         async connectMetamask() {
             this.metamask.provider = await this.metamask.sdk.getProvider();
-            await this.getAddress()
             this.metamask.connected = true
+            await this.syncNetwork()
         },
         async getSigner() {
             const provider = new ethers.providers.Web3Provider(window.ethereum);
             return await provider.getSigner();
         },
+        getContractAddress() {
+            return network_to_contract[protocol_to_network[this.selectedProtocol.code]]
+        },
         async commitAirdrop() {
+            if (!this.metamask.provider) {
+                this.metamask.provider = await this.metamask.sdk.getProvider();
+            }
+            await this.syncNetwork()
             const allocationParameters = await this.getContractData()
             const artifact = await getArtifact()
             const signer = await this.getSigner()
-            // const artifact = fs("../artifacts/contracts/zkMLAirdrop.sol/zkMLAirdrop.json");
-            const zkMLAirdropContract = new ethers.Contract("0x85ce86CD3EAd7A5Df669ea2ebCAB5b8b24209718", artifact.abi, signer);
+            const zkMLAirdropContract = new ethers.Contract(this.getContractAddress(), artifact.abi, signer);
             await (await zkMLAirdropContract.submitAirdropParameters(allocationParameters)).wait()
         },
         async terminateMetamask() {
             await this.metamask.sdk.terminate()
             this.metamask.connected = false
+            this.metamask.provider = null
         },
+        async syncNetwork() {
+            console.log("Syncing network")
+            const current_chain = await this.metamask.provider.request({
+                method: "eth_chainId",
+            });
+            const protocol_chain = network_to_id[protocol_to_network[this.selectedProtocol.code]]
+
+            if (current_chain !== protocol_chain) {
+                await this.metamask.provider.request({
+                    method: "wallet_switchEthereumChain",
+                    params: [{ chainId: protocol_chain }],
+                });
+            }
+        }
     },
     async mounted() {
         await this.initAvailableProtocols()
         await this.updateProtocolData()
         await this.metamask.sdk.init();
-        // this.metamask.provider = await this.metamask.sdk.getProvider();
     }
 }
 </script>

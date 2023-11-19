@@ -61,19 +61,20 @@
     </div>
 </template>
 <script>
+import { network_to_contract, network_to_id, protocol_to_network } from '@/contracts.js';
 import { MetaMaskSDK } from '@metamask/sdk';
 import { ethers } from 'ethers';
 import { ref } from 'vue';
 
 async function getAvailableProtocols() {
     return [
+        "polygon",
         "arbitrum",
         "base",
         "celo",
         "gnosis",
         "layer_zero",
         "optimism",
-        "polygon",
         "zksync",
     ]
 }
@@ -108,7 +109,6 @@ export default {
                 sdk: null,
                 provider: null,
                 address: null,
-                mockedAddress: null,
             },
             returnProbability: null,
             percentile: null,
@@ -123,6 +123,7 @@ export default {
                 name: "Smart incentives dashboard",
             },
             checkInstallationImmediately: false,
+            checkInstallationOnAllCalls: true,
         })
     },
     methods: {
@@ -148,12 +149,8 @@ export default {
             });
             return accounts[0];
         },
-        async updateAddress() {
-            this.metamask.address = await this.getAddress()
-            this.metamask.mockedAddress = this.metamask.address
-        },
         async updateUserReturnProbability() {
-            this.returnProbability = this.userStats.user_probas[this.metamask.address]
+            this.returnProbability = this.userStats.user_probas[await this.getAddress()]
         },
         async updateUserPercentile() {
             const users_below = Object.values(this.userStats.user_probas).filter(
@@ -175,51 +172,43 @@ export default {
             await this.updateUserPercentile()
             await this.updateUserTokens()
             await this.updateShapGraph()
+            // if (this.metamask.connected) {
+            //     await this.syncNetwork()
+            // }
         },
         async updateShapGraph() {
-            this.shapGraph = await fetchShapGraph(this.selectedProtocol.code, this.metamask.address)
+            this.shapGraph = await fetchShapGraph(this.selectedProtocol.code, await this.getAddress())
         },
         async connectMetamask() {
             this.metamask.provider = await this.metamask.sdk.getProvider();
-            await this.updateAddress()
             this.metamask.connected = true
             await this.updateUserData()
         },
         async terminateMetamask() {
             await this.metamask.sdk.terminate()
             this.metamask.connected = false
+            this.metamask.provider = null
         },
-        async sendTransaction() {
-            const contractAddress = "0xB2e3618B865b4f200B2d1803640d00557452aE1E";
-            const data = '0x03ca98cb0000000000000000000000000000000000000000000000000000000000000010';
+        async getSigner() {
             if (!this.metamask.provider) {
                 this.metamask.provider = await this.metamask.sdk.getProvider();
             }
-            this.metamask.provider.request({
-                method: "eth_sendTransaction",
-                params: [
-                    {
-                        from: await this.getAddress(),
-                        to: contractAddress,
-                        data: data,
-                    }
-                ]
-            })
-        },
-        async getSigner() {
-            const provider = new ethers.providers.Web3Provider(window.ethereum);
+            const provider = new ethers.providers.Web3Provider(this.metamask.provider);
             return await provider.getSigner();
+        },
+        getContractAddress() {
+            return network_to_contract[protocol_to_network[this.selectedProtocol.code]]
         },
         async currentAirdrop() {
             const artifact = await getArtifact()
             const signer = await this.getSigner()
-            const zkMLAirdropContract = new ethers.Contract("0x85ce86CD3EAd7A5Df669ea2ebCAB5b8b24209718", artifact.abi, signer);
+            const zkMLAirdropContract = new ethers.Contract(this.getContractAddress(), artifact.abi, signer);
             return await zkMLAirdropContract.airdropCount()
         },
         async isClaimed() {
             const artifact = await getArtifact()
             const signer = await this.getSigner()
-            const zkMLAirdropContract = new ethers.Contract("0x85ce86CD3EAd7A5Df669ea2ebCAB5b8b24209718", artifact.abi, signer);
+            const zkMLAirdropContract = new ethers.Contract(this.getContractAddress(), artifact.abi, signer);
             const currentAirdrop = await this.currentAirdrop()
             return await zkMLAirdropContract.isClaimed(await this.getAddress(), currentAirdrop)
         },
@@ -229,24 +218,39 @@ export default {
             }
             const artifact = await getArtifact()
             const signer = await this.getSigner()
-            const zkMLAirdropContract = new ethers.Contract("0x85ce86CD3EAd7A5Df669ea2ebCAB5b8b24209718", artifact.abi, signer);
+            const zkMLAirdropContract = new ethers.Contract(this.getContractAddress(), artifact.abi, signer);
             return await zkMLAirdropContract.getCurrentClaimableBalance(await this.getAddress()) / 10 ** 18
         },
         async claimRewards() {
+            // if (!this.metamask.provider) {
+            //     this.metamask.provider = await this.metamask.sdk.getProvider();
+            // }
+            // await this.syncNetwork()
             const artifact = await getArtifact()
             const signer = await this.getSigner()
-            const zkMLAirdropContract = new ethers.Contract("0x85ce86CD3EAd7A5Df669ea2ebCAB5b8b24209718", artifact.abi, signer);
+            const zkMLAirdropContract = new ethers.Contract(this.getContractAddress(), artifact.abi, signer);
             await (await zkMLAirdropContract.claimRewards(await this.getAddress())).wait()
         },
         async updateProtocolData() {
             await this.updateUserData()
+        },
+        async syncNetwork() {
+            const current_chain = await this.metamask.provider.request({
+                method: "eth_chainId",
+            });
+            const protocol_chain = network_to_id[protocol_to_network[this.selectedProtocol.code]]
+
+            if (current_chain !== protocol_chain) {
+                await this.metamask.provider.request({
+                    method: "wallet_switchEthereumChain",
+                    params: [{ chainId: protocol_chain }],
+                });
+            }
         }
     },
     async mounted() {
-        await this.initAvailableProtocols()
-        // await this.updateUserData()
+        await this.initAvailableProtocols();
         await this.metamask.sdk.init();
-        // this.metamask.provider = await this.metamask.sdk.getProvider();
     }
 }
 
