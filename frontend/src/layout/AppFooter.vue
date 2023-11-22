@@ -10,7 +10,7 @@ const logoUrl = computed(() => {
 </script>
 
 <template>
-    <a href="https://www.cenit.finance">
+    <a href="https://www.cenit.finance?utm_source=themis&utm_medium=themis&utm_content=footer">
         <div class="layout-footer">
             <img src="src/assets/cenit_logo.png" alt="Logo" height="30" width="30" class="mr-2" />
             by

@@ -62,8 +62,8 @@ const isOutsideClicked = (event) => {
 
 <template>
     <div class="layout-topbar">
-        <a href="https://www.cenit.finance">
-            <li to="https://www.cenit.finance" class="layout-topbar-logo">
+        <a href="https://www.cenit.finance?utm_source=themis&utm_medium=themis&utm_content=navbar">
+            <li class="layout-topbar-logo">
                 <img src="src/assets/logo.jpg" alt="logo" />
                 <span>Smart incentives dashboard</span>
             </li>
