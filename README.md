@@ -1,5 +1,7 @@
 # Themis: Smart Incentivization with ZKML
 
+If interested in the project, follow us at [@CenitFinance](https://twitter.com/CenitFinance) or contact us here: https://www.cenit.finance/contact
+
 ## Description
 
 Themis is a framework for improving protocol incentives and optimizing for long-term loyalty through data-driven analysis. It delivers those improvements in a trustless manner using Zero-Knowledge Proofs over the Machine Learning model results (ZKML).
