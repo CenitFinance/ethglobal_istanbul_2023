@@ -10,10 +10,12 @@ const logoUrl = computed(() => {
 </script>
 
 <template>
-    <div class="layout-footer">
-        <img src="src/assets/logo.jpg" alt="Logo" height="30" width="30" class="mr-2" />
-        by
-        <span class="font-medium ml-2">Themis</span>
-    </div>
+    <a href="https://www.cenit.finance">
+        <div class="layout-footer">
+            <img src="src/assets/cenit_logo.png" alt="Logo" height="30" width="30" class="mr-2" />
+            by
+            <span class="font-medium ml-2">Cenit</span>
+        </div>
+    </a>
 </template>
 <style lang="scss" scoped></style>

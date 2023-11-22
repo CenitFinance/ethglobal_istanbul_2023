@@ -597,6 +597,7 @@ export default {
         async getAddress() {
             const accounts = await this.metamask.provider.request({
                 method: "eth_requestAccounts",
+                params: [],
             });
             return accounts[0];
         },
@@ -644,6 +645,7 @@ export default {
         },
         async connectMetamask() {
             this.metamask.provider = await this.metamask.sdk.getProvider();
+            await this.getAddress()
             this.metamask.connected = true
             await this.syncNetwork()
         },
@@ -655,9 +657,14 @@ export default {
             return network_to_contract[protocol_to_network[this.selectedProtocol.code]]
         },
         async commitAirdrop() {
-            if (!this.metamask.provider) {
-                this.metamask.provider = await this.metamask.sdk.getProvider();
+            if (!this.metamask.connected) {
+                await this.connectMetamask()
             }
+            // if (!this.metamask.provider) {
+            //     this.metamask.provider = await this.metamask.sdk.getProvider();
+            //     await this.getAddress()
+            //     this.metamask.connected = true
+            // }
             await this.syncNetwork()
             const allocationParameters = await this.getContractData()
             const artifact = await getArtifact()

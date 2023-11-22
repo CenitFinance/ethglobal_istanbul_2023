@@ -62,10 +62,12 @@ const isOutsideClicked = (event) => {
 
 <template>
     <div class="layout-topbar">
-        <router-link to="/" class="layout-topbar-logo">
-            <img src="src/assets/logo.jpg" alt="logo" />
-            <span>Smart incentives dashboard</span>
-        </router-link>
+        <a href="https://www.cenit.finance">
+            <li to="https://www.cenit.finance" class="layout-topbar-logo">
+                <img src="src/assets/logo.jpg" alt="logo" />
+                <span>Smart incentives dashboard</span>
+            </li>
+        </a>
 
         <button class="p-link layout-menu-button layout-topbar-button" @click="onMenuToggle()">
             <i class="pi pi-bars"></i>
